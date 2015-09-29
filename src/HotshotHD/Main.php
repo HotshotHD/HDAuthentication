@@ -27,7 +27,7 @@ class HDAuthentication extends PluginBase implements Listener {
 	}
 	
 	public function authenticatePlayer($player) {
-		unset($this->isNotAuthenticated[$player->getName()]);
+		unset($this->NotAuthenticated[$player->getName()]);
 		$this->Authenticated[$playername] = $playername;
 	}
 	

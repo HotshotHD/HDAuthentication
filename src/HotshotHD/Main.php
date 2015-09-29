@@ -19,7 +19,7 @@ class HDAuthentication extends PluginBase implements Listener {
 	}
 	
 	public function isAuthenticated($playername) {
-		return in_array($playername, $this->isAuthenticated);
+		return in_array($playername, $this->Authenticated);
 	}
 	
 	public function isNotAuthenticated($playername) {

@@ -1,0 +1,6 @@
+name: HD_Authentication
+main: HotshotHD\HDAuthentication
+version: 1.0.0 beta
+api: [1.12.0, 1.13.0]
+author: HotshotHD
+description: A Simple Authentication Plugin

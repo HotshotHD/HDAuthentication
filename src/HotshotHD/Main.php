@@ -1,12 +1,20 @@
 <?php
 namespace HotshotHD;
 use pocketmine\plugin\PluginBase;
+
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerChatEvent;
+use pocketmine\event\player\PlayerMoveEvent;
+
+use pocketmine\event\entity\EntityDamageEvent;
+
 use pocketmine\event\Listener;
+
 use pocketmine\utils\Config;
 class HDAuthentication extends PluginBase implements Listener {
 	
+	public $tries = array();
+	public $temppass = array();
 	public $NotAuthenticated = array();
 	public $Authenticated = array();
 	public $Registered = array();
@@ -26,7 +34,7 @@ class HDAuthentication extends PluginBase implements Listener {
 		return in_array($playername, $this->NotAuthenticated);
 	}
 	
-	public function authenticatePlayer($player) {
+	public function authenticatePlayer($player, $playername) {
 		unset($this->NotAuthenticated[$player->getName()]);
 		$this->Authenticated[$playername] = $playername;
 	}
@@ -44,22 +52,47 @@ class HDAuthentication extends PluginBase implements Listener {
 		$this->player->set("Registered", "false");
 	}
 	
-	public function isRegistered($playername) {
-		$this->player->get("Registered") == "true";
+	public function isRegistered() {
+		return $this->player->get("Registered") == "true";
 	}
 	
-	public function isNotRegistered($player) {
-		$this->player->get("Registered") == "false";
+	public function isNotRegistered() {
+		return $this->player->get("Registered") == "false";
 	}
 	
-	public function registerPlayer($playername) {
-		$this->player->set("Resgistered", "true");
+	public function tempRegisterPlayer($player, $playername, $message, $event) { // TEMPORARY REGISTER FUNCITON
+		unset($this->NotRegistered[$player->getName()]);
+		$this->player->set("Registered", "true");
+		$this->player->set("Password", $message);
 		$this->player->save();
-		new Config($this->getDataFolder() . "Users/" . strtolower($player->getName()) . ".yml", Config::YAML, array(
-		"Password" => "NoPassword",
-		"Registered" => "false"
-		));
+		$this->authenticatePlayer($player, $playername);
+		$player->sendMessage("§aYou have been successfully registered!");
+		$event->setCancelled();
+		
 	}
+	/* NOT IMPLEMTED YET...
+	public function registerPlayer($player, $message, $playername, $event) {
+		
+		$this->temppass[$playername] = $event->getMessage();
+		$event->setMessage(".");
+		$player->sendMessage("§cRepeat password to confirm.");
+		$event->setCancelled(true);
+		
+		if($message === $this->temppass[$playername]) {	
+        unset($this->temppass[$playername]);
+		$this->authenticatePlayer($player, $playername);
+		$this->player->set("Password", $message);
+		$this->player->set("Registered", "true");
+		$this->player->save();
+		$player->sendMessage("§aYou have been successfully registered!");
+		}
+		else {
+			$player->sendMessage("§cPasswords do not match! Try again.");
+			$event->setCancelled(true);
+		}
+	}
+	*/
+	
 	public function setNotRegistered($playername) {
 		$this->NotRegistered[$playername] = $playername;
 	}
@@ -73,7 +106,7 @@ class HDAuthentication extends PluginBase implements Listener {
 		));	
 		$password = $this->player->get("Password");
 		
-		$this->setNotAuthenticated($playername); // Resets players authentication status when they join
+		$this->setNotAuthenticated($playername);
 		
 		if($password == "NoPassword") {
 			$this->setNotRegistered($playername);
@@ -83,7 +116,7 @@ class HDAuthentication extends PluginBase implements Listener {
 			$player->sendMessage("§cYou are not authenticated. Please type your password:");
 		}
 		
-		if($this->isNotRegistered($player)) {
+		if($this->isNotRegistered()) {
 			$player->sendMessage("§cYou are not registered. Please type your desired password:");
 		}
 	}
@@ -97,25 +130,25 @@ class HDAuthentication extends PluginBase implements Listener {
 		$password = $this->player->get("Password");
 		$message = $event->getMessage();
 		
-		if($this->isNotAuthenticated($playername) && $this->isRegistered($playername)) {	
+		if($this->isNotAuthenticated($playername) && $this->isRegistered()) {	
+		    $event->setCancelled(true);
+			
 			if($message == $password) {
-			$this->authenticatePlayer($player);
+			$this->authenticatePlayer($player, $playername);
 			$player->sendMessage("§aYou have been authenticated!");
 		}
 		else {
 			$player->sendMessage("§cIncorrect password!");
 		}
-			$event->setCancelled(true);
 		}
 		
 		if($this->isNotRegistered($player)) {
 			if(preg_match('/\s/', $message)) {
+				$event->setCancelled(true);
 				$player->sendMessage("§cPassword cannot contain any spaces!");
 			}
 			else {
-			$this->player->set("Password", $message);
-			$this->player->save();
-            $this->registerPlayer($player);			
+            $this->tempRegisterPlayer($player, $playername, $message, $event);			
 			$event->setCancelled(true);
 			}
 		}
@@ -125,6 +158,23 @@ class HDAuthentication extends PluginBase implements Listener {
 		}
 		
 		
+	}
+	
+	public function onMove(PlayerMoveEvent $event) {
+		$player = $event->getPlayer();
+		$playername = $player->getName();
+		
+		if($this->isNotAuthenticated($playername) || $this->isNotRegistered()) {
+			$event->setCancelled(true);
+		}
+	}
+	
+	public function onDamage(EntityDamageEvent $event) {
+		$player = $event->getEntity();
+		$playername = $player->getName();
+		if($this->isNotAuthenticated($playername)) {
+			$event->setCancelled(true);
+		}
 	}
 }
 	

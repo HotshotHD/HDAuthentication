@@ -10,6 +10,8 @@ use pocketmine\event\entity\EntityDamageEvent;
 
 use pocketmine\event\Listener;
 
+use pocketmine\event\Player;
+
 use pocketmine\utils\Config;
 class HDAuthentication extends PluginBase implements Listener {
 	
@@ -25,7 +27,7 @@ class HDAuthentication extends PluginBase implements Listener {
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 		@mkdir($this->getDataFolder() . "Users/");
 	}
-	
+
 	public function isAuthenticated($playername) {
 		return in_array($playername, $this->Authenticated);
 	}
@@ -63,7 +65,7 @@ class HDAuthentication extends PluginBase implements Listener {
 	public function tempRegisterPlayer($player, $playername, $message, $event) { // TEMPORARY REGISTER FUNCITON
 		unset($this->NotRegistered[$player->getName()]);
 		$this->player->set("Registered", "true");
-		$this->player->set("Password", $message);
+		$this->player->set("Password", password_hash($message, PASSWORD_DEFAULT));
 		$this->player->save();
 		$this->authenticatePlayer($player, $playername);
 		$player->sendMessage("§aYou have been successfully registered!");
@@ -73,15 +75,15 @@ class HDAuthentication extends PluginBase implements Listener {
 	/* NOT IMPLEMTED YET...
 	public function registerPlayer($player, $message, $playername, $event) {
 		
-		$this->temppass[$playername] = $event->getMessage();
 		$event->setMessage(".");
+		$this->temppass[$playername] = password_hash($event->getMessage(), PASSWORD_DEFAULT);
 		$player->sendMessage("§cRepeat password to confirm.");
 		$event->setCancelled(true);
 		
-		if($message === $this->temppass[$playername]) {	
+		if(password_verify($message, $message) === $this->temppass[$playername]) {	
         unset($this->temppass[$playername]);
 		$this->authenticatePlayer($player, $playername);
-		$this->player->set("Password", $message);
+		$this->player->set("Password", password_hash($message));
 		$this->player->set("Registered", "true");
 		$this->player->save();
 		$player->sendMessage("§aYou have been successfully registered!");
@@ -107,7 +109,6 @@ class HDAuthentication extends PluginBase implements Listener {
 		$password = $this->player->get("Password");
 		
 		$this->setNotAuthenticated($playername);
-		
 		if($password == "NoPassword") {
 			$this->setNotRegistered($playername);
 		}
@@ -133,7 +134,7 @@ class HDAuthentication extends PluginBase implements Listener {
 		if($this->isNotAuthenticated($playername) && $this->isRegistered()) {	
 		    $event->setCancelled(true);
 			
-			if($message == $password) {
+			if(password_verify($message, $password) == $password) {
 			$this->authenticatePlayer($player, $playername);
 			$player->sendMessage("§aYou have been authenticated!");
 		}
@@ -147,11 +148,9 @@ class HDAuthentication extends PluginBase implements Listener {
 				$event->setCancelled(true);
 				$player->sendMessage("§cPassword cannot contain any spaces!");
 			}
-			else {
             $this->tempRegisterPlayer($player, $playername, $message, $event);			
 			$event->setCancelled(true);
 			}
-		}
 		
 		if($this->isAuthenticated($player)) {
 			$event->setCancelled(false);
@@ -172,6 +171,17 @@ class HDAuthentication extends PluginBase implements Listener {
 	public function onDamage(EntityDamageEvent $event) {
 		$player = $event->getEntity();
 		$playername = $player->getName();
+		$cause = $player->getLastDamageCause();
+		
+		/*
+		if($cause instanceof EntityDamageByEntityEvent && $cause instanceof Player) {
+			$attacker = $cause->getDamager();
+			if($this->isNotAuthenticated($attacker) || $this->isNotAuthenticated($attacker)) {
+				$event->setCancelled();
+			}
+		}
+		*/
+		
 		if($this->isNotAuthenticated($playername)) {
 			$event->setCancelled(true);
 		}

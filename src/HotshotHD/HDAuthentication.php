@@ -5,6 +5,7 @@ use pocketmine\plugin\PluginBase;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerChatEvent;
 use pocketmine\event\player\PlayerMoveEvent;
+use pocketmine\event\player\PlayerQuitEvent;
 
 use pocketmine\event\entity\EntityDamageEvent;
 
@@ -15,7 +16,7 @@ use pocketmine\event\Player;
 use pocketmine\utils\Config;
 class HDAuthentication extends PluginBase implements Listener {
 	
-	public $tries = array();
+	public $tasks = array();
 	public $temppass = array();
 	public $NotAuthenticated = array();
 	public $Authenticated = array();
@@ -26,7 +27,38 @@ class HDAuthentication extends PluginBase implements Listener {
 		$this->getLogger()->info("Enabled.");
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 		@mkdir($this->getDataFolder() . "Users/");
+		@mkdir($this->getDataFolder());
+		$this->messages = (new Config($this->getDataFolder() . "messages.yml", Config::YAML, array(
+		"Messages" => array(
+		"Not.Authenticated" => "You are not authenticated. Please type your password:",
+		"Not.Registered" => "You are not registered. Please type your desired password:",
+		"Incorrect.Password" => "Incorrect password!",
+		"No.Spaces" => "Password cannot contain any spaces!",
+		"Authenticate.Success" => "You have been authenticated!",
+		"Register.Success" => "You have been successfully registered!",
+		"Timeout.Value" => "30",
+		"Timeout.Kick" => "You took too long to login"
+		))))->getAll();
+		$m = $this->messages;
 	}
+	
+    public function getTimerTask($player) {
+	return new Timer($this, $player);
+	}
+	
+	public function cancelTimer($id) {
+    unset($this->tasks[$id]);
+    $this->getServer()->getScheduler()->cancelTask($id);
+}
+
+	public function startTimer($player) {
+    $task = $this->getTimerTask($player);
+    $h = $this->getServer()->getScheduler()->scheduleRepeatingTask($task, 20);
+	
+    $task->setHandler($h);
+	$this->tasks[$this->getTimerTask($player)->getTaskId()] = $task->getTaskId();
+}
+
 
 	public function isAuthenticated($playername) {
 		return in_array($playername, $this->Authenticated);
@@ -68,7 +100,7 @@ class HDAuthentication extends PluginBase implements Listener {
 		$this->player->set("Password", password_hash($message, PASSWORD_DEFAULT));
 		$this->player->save();
 		$this->authenticatePlayer($player, $playername);
-		$player->sendMessage("§aYou have been successfully registered!");
+		$player->sendMessage($this->messages["Register.Success"]);
 		$event->setCancelled();
 		
 	}
@@ -114,11 +146,19 @@ class HDAuthentication extends PluginBase implements Listener {
 		}
 		
 		if($this->isNotAuthenticated($playername) && $this->isRegistered($playername)) {
-			$player->sendMessage("§cYou are not authenticated. Please type your password:");
+			/*$this->startTimer($player);*/
+			$player->sendMessage($this->messages["Not.Authenticated"]);
+		}
+		else {
+			/*$this->cancelTimer($this->getTimerTask($player)->getTaskId());*/
 		}
 		
 		if($this->isNotRegistered()) {
-			$player->sendMessage("§cYou are not registered. Please type your desired password:");
+			$this->startTimer($player);
+			$player->sendMessage($this->messages["Not.Registered"]);
+		}
+		else {
+			$this->cancelTimer($this->getTimerTask($player)->getTaskId());
 		}
 	}
 	
@@ -136,17 +176,17 @@ class HDAuthentication extends PluginBase implements Listener {
 			
 			if(password_verify($message, $password) == $password) {
 			$this->authenticatePlayer($player, $playername);
-			$player->sendMessage("§aYou have been authenticated!");
+			$player->sendMessage($this->messages["Authenticate.Success"]);
 		}
 		else {
-			$player->sendMessage("§cIncorrect password!");
+			$player->sendMessage($this->messages["Incorrect.Password"]);
 		}
 		}
 		
 		if($this->isNotRegistered($player)) {
 			if(preg_match('/\s/', $message)) {
 				$event->setCancelled(true);
-				$player->sendMessage("§cPassword cannot contain any spaces!");
+				$player->sendMessage($this->messages["No.Spaces"]);
 			}
             $this->tempRegisterPlayer($player, $playername, $message, $event);			
 			$event->setCancelled(true);
@@ -173,20 +213,35 @@ class HDAuthentication extends PluginBase implements Listener {
 		$playername = $player->getName();
 		$cause = $player->getLastDamageCause();
 		
-		/*
+		if(this->isNotAuthenticated($playername) || $this->isNotRegistered($playername)) {
+			$event->setCancelled();
+		}
+
 		if($cause instanceof EntityDamageByEntityEvent && $cause instanceof Player) {
 			$attacker = $cause->getDamager();
-			if($this->isNotAuthenticated($attacker) || $this->isNotAuthenticated($attacker)) {
+			if($this->isNotAuthenticated($attacker->getName()) || $this->isNotAuthenticated($attacker->getName())) {
 				$event->setCancelled();
 			}
 		}
-		*/
 		
 		if($this->isNotAuthenticated($playername)) {
 			$event->setCancelled(true);
 		}
 	}
+	
+	public function onQuit(PlayerQuitEvent $event) {
+		$player = $event->getPlayer();
+		$playername = $player->getName();
+		
+		/*
+		$this->cancelTimer($this->tasks[$this->getTimerTask($player)->getTaskId()]);
+			if($this->isNotAuthenticated($playername) && $this->isRegistered($playername) || $this->isNotRegistered($playername) || $this->isNotAuthenticated($player)) {
+			$this->cancelTimer($this->getTimerTask($player)->getTaskId());
+		}
+		
+		if($this->isNotRegistered()) {
+			$this->cancelTimer($this->getTimerTask($player)->getTaskId());
+		}
+		*/
+	}
 }
-	
-	
-?>

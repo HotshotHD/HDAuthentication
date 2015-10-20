@@ -1,0 +1,19 @@
+---
+Not.Authenticated: '§cYou are not authenticated. Please type your password:'
+Not.Registered: 'You are not registered. Please type your desired password:'
+Incorrect.Password: §cIncorrect password!
+No.Spaces: Password cannot contain any spaces!
+Authenticate.Success: You have been authenticated!
+Register.Success: You have been successfully registered!
+Timeout.Value: "30"
+Timeout.Kick: You took too long to login
+Messages:
+  Not.Authenticated: '§cYou are not authenticated. Please type your password:'
+  Not.Registered: 'You are not registered. Please type your desired password:'
+  Incorrect.Password: §cIncorrect password!
+  No.Spaces: Password cannot contain any spaces!
+  Authenticate.Success: You have been authenticated!
+  Register.Success: You have been successfully registered!
+  Timeout.Value: "30"
+  Timeout.Kick: You took too long to login
+...

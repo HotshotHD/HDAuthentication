@@ -100,7 +100,7 @@ class HDAuthentication extends PluginBase implements Listener {
 		$this->player->set("Password", password_hash($message, PASSWORD_DEFAULT));
 		$this->player->save();
 		$this->authenticatePlayer($player, $playername);
-		$player->sendMessage($this->messages["Register.Success"]);
+		$player->sendMessage($this->messages["Messages"]["Register.Success"]);
 		$event->setCancelled();
 		
 	}
@@ -147,7 +147,7 @@ class HDAuthentication extends PluginBase implements Listener {
 		
 		if($this->isNotAuthenticated($playername) && $this->isRegistered($playername)) {
 			/*$this->startTimer($player);*/
-			$player->sendMessage($this->messages["Not.Authenticated"]);
+			$player->sendMessage($this->messages["Messages"]["Not.Authenticated"]);
 		}
 		else {
 			/*$this->cancelTimer($this->getTimerTask($player)->getTaskId());*/
@@ -176,17 +176,17 @@ class HDAuthentication extends PluginBase implements Listener {
 			
 			if(password_verify($message, $password) == $password) {
 			$this->authenticatePlayer($player, $playername);
-			$player->sendMessage($this->messages["Authenticate.Success"]);
+			$player->sendMessage($this->messages["Messages"]["Authenticate.Success"]);
 		}
 		else {
-			$player->sendMessage($this->messages["Incorrect.Password"]);
+			$player->sendMessage($this->messages["Messages"]["Incorrect.Password"]);
 		}
 		}
 		
 		if($this->isNotRegistered($player)) {
 			if(preg_match('/\s/', $message)) {
 				$event->setCancelled(true);
-				$player->sendMessage($this->messages["No.Spaces"]);
+				$player->sendMessage($this->messages["Messages"]["No.Spaces"]);
 			}
             $this->tempRegisterPlayer($player, $playername, $message, $event);			
 			$event->setCancelled(true);

@@ -217,10 +217,13 @@ class HDAuthentication extends PluginBase implements Listener {
 			$event->setCancelled();
 		}
 
-		if($cause instanceof EntityDamageByEntityEvent && $cause instanceof Player) {
+		if($cause instanceof EntityDamageByEntityEvent) {
 			$attacker = $cause->getDamager();
+			
+			if($attacker instanceof Player) {
 			if($this->isNotAuthenticated($attacker->getName()) || $this->isNotAuthenticated($attacker->getName())) {
 				$event->setCancelled();
+			}
 			}
 		}
 		
